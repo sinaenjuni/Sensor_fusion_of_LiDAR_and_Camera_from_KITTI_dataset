@@ -50,3 +50,24 @@ kitti_lidar_to_camera_calibration
 └─ ...
 ```
 
+
+
+# Calibration
+
+```
+S_xx: 1x2 size of image xx before rectification
+K_xx: 3x3 calibration matrix of camera xx before rectification
+D_xx: 1x5 distortion vector of camera xx before rectification
+R_xx: 3x3 rotation matrix of camera xx (extrinsic)
+T_xx: 3x1 translation vector of camera xx (extrinsic)
+S_rect_xx: 1x2 size of image xx after rectification
+R_rect_xx: 3x3 rectifying rotation to make image planes co-planar
+P_rect_xx: 3x4 projection matrix after rectification
+```
+
+$$
+Y = P_rect_xx * R_rect_00 * (R|T)_velo_to_cam * X
+$$
+
+
+![Alt text](docs/image.png)
