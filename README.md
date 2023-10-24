@@ -81,6 +81,5 @@ P_rect_xx: 3x4 projection matrix after rectification
 <!-- ![](docs/image.png) -->
 
 $$
-% Y = \text{P\_rect\_xx} * \text{R\_rect\_00} * (R|T)\text{\_velo\_to\_cam} * X
-Y = P\text{_}rect\text{_}xx * R\text{_}rect\text{_}00 * (R|T) \text{_}velo\text{_}to\text{_}cam * X
+Y = \text{P\_rect\_xx} * \text{R\_rect\_00} * (R|T)\text{\_velo\_to\_cam} * X
 $$
