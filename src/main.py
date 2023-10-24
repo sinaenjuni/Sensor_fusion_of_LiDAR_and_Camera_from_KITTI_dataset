@@ -1,104 +1,90 @@
 import cv2
 import os
 import numpy as np
-from glob import glob
 
+from project_lidar_to_camera import *
+import open3d as o3d
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import Pool
 
-def load_files(dir_path):
-    ''' 
-    Input: image directory path
-    Oupput: list of image files
-    '''
-    return sorted(glob(dir_path))
+# import cProfile
+# import pstats
+# with cProfile.Profile() as pr:
 
-def load_lidar_file(file_path):
-    ''' 
-    Input: *.bin file path
-    Oupput: numpy array shaped (n, 4)
-    '''
-    return np.fromfile(file_path, dtype=np.float32).reshape((-1, 4)) # xyzr
-
-def load_lidar_to_refcam_calib(calib_path):
-    '''
-    Input: calibration information *.txt file path
-    Output: TR matrix (4, 4)
-    '''
-    calib = {}
-    with open(calib_path) as f:
-        for line in f.readlines():
-            key, val = line.replace("\n", "").split(": ")
-            calib[key] = val
-
-    T = np.eye(4)
-    T[:3, 3] = np.array(calib["T"].split()).astype(np.float32)
-    R = np.eye(4)
-    R[:3, :3] = np.array(calib["R"].split()).astype(np.float32).reshape(3, 3)
-    TR = T @ R
-    return TR
-
-
-def load_refcam_to_cam_calib(calib_path, cam_number):
-    calib = {}
-    with open(calib_path) as f:
-        for line in f.readlines():
-            key, val = line.replace("\n", "").split(": ")
-            calib[key] = val
-            
-    R = np.eye(4)
-    R[:3, :3] = np.array(calib["R_rect_"+cam_number].split()).astype(np.float32).reshape(3,3)
-    P = np.array(calib["P_rect_"+cam_number].split()).astype(np.float32).reshape(3,4)
-    return P, R
-
-
-
-
-def cart2hom(pts_3d):
-    ''' 
-    Input: nx3 points in Cartesian
-    Oupput: nx4 points in Homogeneous by pending 1
-    '''
-    return np.hstack((pts_3d, np.ones((pts_3d.shape[0], 1))))
-
+# stats = pstats.Stats(pr)
+# stats.sort_stats(pstats.SortKey.TIME)
+# stats.print_stats()
 
 if __name__ == "__main__":
     image_00_files = load_files("data/kitti_sequence05/image_00/data/*")
     image_01_files = load_files("data/kitti_sequence05/image_01/data/*")
     image_02_files = load_files("data/kitti_sequence05/image_02/data/*")
     image_03_files = load_files("data/kitti_sequence05/image_03/data/*")
-
     lidar_files = load_files("data/kitti_sequence05/velodyne_points/data/*")
-    print(load_lidar_file(lidar_files[0]))
-    
+    parameters = o3d.io.read_pinhole_camera_parameters("./parameters.json")
     Tr = load_lidar_to_refcam_calib("data/kitti_sequence05/calib/calib_velo_to_cam.txt")
-    print(Tr)
-
-    P, R = load_refcam_to_cam_calib("data/kitti_sequence05/calib/calib_cam_to_cam.txt", "00")
+    Tr_inv = inverse_rigid_trans(Tr)
+    P, R = load_refcam_to_cam_calib("data/kitti_sequence05/calib/calib_cam_to_cam.txt", "02")
     print(P)
     print(R)
 
-    
+    # open3d
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(width=3000, height=1500, visible=True)
+    opt = vis.get_render_option()
+    opt.background_color = np.asarray([0, 0, 0])
+    opt.point_size = 3
+    ctr = vis.get_view_control()
 
-    img_file = cv2.imread(image_02_files[0])
-    # img_file = cv2.cvtColor(image_02, cv2.COLOR_BGR2RGB)
-    cv2.imshow("img", img_file)
-    cv2.waitKey()
-    
-    num_images = len(image_00_files)
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(load_lidar_file(lidar_files[0])[:, :3])
+    vis.add_geometry(pcd)
 
-    # for ind in range(num_images):
-    #     image_00 = cv2.imread(image_00_files[ind])
-    #     image_01 = cv2.imread(image_01_files[ind])
-    #     image_02 = cv2.imread(image_02_files[ind])
-    #     image_03 = cv2.imread(image_03_files[ind])
-    #     merged_up = cv2.hconcat([image_00, image_01])
-    #     merged_dw = cv2.hconcat([image_02, image_03])
-    #     merged = cv2.vconcat([merged_up, merged_dw])
+    for ind in range(len(image_00_files)):
+        lidar_file = load_lidar_file(lidar_files[ind])
+        img = load_img(image_02_files[ind])
+        h, w ,c = img.shape
+
+        print(P.shape, R.shape, Tr.shape)
+        pts_3d_hom = cart2hom(lidar_file[:, :3]) # lidar 3d point to homogeneous point with xyz1
+        pts_2d_hom = project_lidar_to_image(P, R, Tr, pts_3d_hom.T)
+        print(pts_2d_hom.shape)
+
+        pts_2d_hom = pts_2d_hom[pts_2d_hom[:, 2] > 0]
+        pts_2d_hom = np.hstack((pts_2d_hom[..., [0, 1]] / pts_2d_hom[..., [2]], 
+                                pts_2d_hom[..., [2]])) # homogeneous to image coordinate
         
-    #     cv2.imshow("img", merged)
-    #     key = cv2.waitKey()
-    #     if key == 'a':
-    #         break
+        pts_2d_hom = pts_2d_hom[pts_2d_hom[..., 0] < w]
+        pts_2d_hom = pts_2d_hom[pts_2d_hom[..., 1] < h]
+
+        min = pts_2d_hom[..., 2].min()
+        max = pts_2d_hom[..., 2].max()
+
+        points_arr = np.zeros_like(img)
+        for cx, cy, z in pts_2d_hom:
+            cx, cy = map(int, (cx, cy))
+            z = (z - min) / max * 255
+            z = 255-z
+            cv2.circle(points_arr, center=(cx, cy), radius=1,
+                        color=(z,z,z), thickness=-1, lineType=cv2.LINE_AA)
+            
+        img = cv2.addWeighted(img, .5, points_arr, 1, 1)
+
+        # pts_3d_uv = project_image_to_rect(pts_2d_hom, P)
+        # proj_to_lidar = (Tr_inv @ np.linalg.inv(R) @ pts_3d_uv.T).T
+
+        pcd.points = o3d.utility.Vector3dVector(lidar_file[:, :3])
+        vis.update_geometry(pcd)
+        ctr.convert_from_pinhole_camera_parameters(parameters)
+
+        keep_running = vis.poll_events()
+        vis.update_renderer()
+        # vis.run()
+
+        cv2.imshow("img", img)
+        if cv2.waitKey(1) == ord('q'):
+            break
         
 
-        # print(file)
-    # print("hello")
+    cv2.destroyAllWindows()
+    o3d.destroy_window()

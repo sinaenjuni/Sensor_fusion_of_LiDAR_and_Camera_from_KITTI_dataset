@@ -1,7 +1,10 @@
 # lidar to camera calibration with KITTI dataset
 
+## Index
+1. [Dataset](#dataset)
+2. [Usage](#usage)
 
-# Dataset
+## Dataset
 
 1. Visit [KITTI dataset website](https://www.cvlibs.net/datasets/kitti/raw_data.php) and login
 2. Download object tracking or any sequence dataset (Recommend Raw data tab)
@@ -47,12 +50,20 @@ kitti_lidar_to_camera_calibration
 │        ├─ timestamps.txt
 │        ├─ timestamps_end.txt
 │        └─ timestamps_start.txt
+├─ src
+│  ├─ ...
+│  └─ main.py
 └─ ...
 ```
 
+## Usage
+
+```bash
+python3 main.py
+```
 
 
-# Calibration
+## Calibration file information
 
 ```
 S_xx: 1x2 size of image xx before rectification
@@ -65,9 +76,10 @@ R_rect_xx: 3x3 rectifying rotation to make image planes co-planar
 P_rect_xx: 3x4 projection matrix after rectification
 ```
 
-$$
-Y = P_rect_xx * R_rect_00 * (R|T)_velo_to_cam * X
-$$
+<div style="text-align:center"><img src="docs/image.png" /></div>
 
+<!-- ![](docs/image.png) -->
 
-![Alt text](docs/image.png)
+$$
+Y = \text{P\_rect\_xx} * \text{R\_rect\_00} * (R|T)\text{\_velo\_to\_cam} * X
+$$
