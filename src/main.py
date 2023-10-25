@@ -35,10 +35,11 @@ if __name__ == "__main__":
                 init_points=load_lidar_file(lidar_files[0])[:, :3], 
                 calib="./o3d_calibration.json"
                 )
-    vis_3d_reprojection = O3D(width=3000, height=1500, 
+    vis_3d_reprojection = O3D(width=2048, height=1024, 
                 init_points=load_lidar_file(lidar_files[0])[:, :3], 
                 calib="./o3d_calibration.json"
                 )
+    cv2.namedWindow('img', cv2.WINDOW_NORMAL)
 
     for ind in range(len(image_00_files)):
         lidar_file = load_lidar_file(lidar_files[ind])
@@ -73,18 +74,23 @@ if __name__ == "__main__":
         pts_3d_uv = cart2hom(project_image_to_rect(pts_2d_hom, P))
         proj_to_lidar = (Tr_inv @ np.linalg.inv(R) @ pts_3d_uv.T).T
 
-        vis_3d_truth.updata_pcd(lidar_file[:, :3])
-        vis_3d_reprojection.updata_pcd(proj_to_lidar[:, :3])
 
 
         # blocking
         # vis.run()
 
-        # cv2.imshow("img", img)
-        # if cv2.waitKey() == ord('q'):
-        #     break
+        cv2.imshow("img", img)
+        key = cv2.waitKey(1)
+        if key == 32:
+            while(cv2.waitKey(5) != 32):
+                key = cv2.waitKey(5)
+                if key == 27: break
+        if key == 27: break
 
-        time.sleep(.1)
-        
+        vis_3d_truth.updata_pcd(lidar_file[:, :3])
+        vis_3d_reprojection.updata_pcd(proj_to_lidar[:, :3])
 
+
+    del(vis_3d_truth)
+    del(vis_3d_reprojection)
     cv2.destroyAllWindows()
