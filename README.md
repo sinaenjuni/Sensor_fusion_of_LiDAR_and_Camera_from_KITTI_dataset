@@ -5,7 +5,6 @@
 2. [Usage](#usage)
 
 ## Dataset
-
 1. Visit [KITTI dataset website](https://www.cvlibs.net/datasets/kitti/raw_data.php) and login
 2. Download object tracking or any sequence dataset (Recommend Raw data tab)
 
@@ -57,11 +56,9 @@ kitti_lidar_to_camera_calibration
 ```
 
 ## Usage
-
 ```bash
 python3 main.py
 ```
-
 
 ## Calibration file information
 
@@ -76,11 +73,13 @@ R_rect_xx: 3x3 rectifying rotation to make image planes co-planar
 P_rect_xx: 3x4 projection matrix after rectification
 ```
 
-<div style="text-align:center"><img src="docs/image.png" /></div>
-
-<!-- ![](docs/image.png) -->
+![](docs/image.png)
 
 $$
 % Y = \text{P\_rect\_xx} * \text{R\_rect\_00} * (R|T)\text{\_velo\_to\_cam} * X
 Y = P_\text{rect xx} * R_\text{rect 00} * (R|T)_\text{velo to cam} * X
 $$
+
+
+## Demo
+![](docs/record.gif)

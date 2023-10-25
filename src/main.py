@@ -63,12 +63,12 @@ if __name__ == "__main__":
         points_arr = np.zeros_like(img)
         for cx, cy, z in pts_2d_hom:
             cx, cy = map(int, (cx, cy))
-            z = (z - min) / max * 255
+            z = ((z - min) / max) * 255
             z = 255-z
             cv2.circle(points_arr, center=(cx, cy), radius=1,
-                        color=(z,z,z), thickness=-1, lineType=cv2.LINE_AA)
+                        color=(z,z,z), thickness=-1, lineType=cv2.LINE_4)
             
-        img = cv2.addWeighted(img, .5, points_arr, 1, 1)
+        img = cv2.addWeighted(img, 1, points_arr, 1, 1)
 
         # pts_3d_uv = project_image_to_rect(pts_2d_hom, P)
         # proj_to_lidar = (Tr_inv @ np.linalg.inv(R) @ pts_3d_uv.T).T
@@ -79,6 +79,14 @@ if __name__ == "__main__":
 
         keep_running = vis.poll_events()
         vis.update_renderer()
+
+        # save files        
+        # o3d_save_path = os.path.join("./outputs/o3d", f"{ind}.png")
+        # if not os.path.exists(os.path.dirname(o3d_save_path)):
+        #     os.makedirs(os.path.dirname(o3d_save_path))
+        # vis.capture_screen_image(o3d_save_path)
+
+        # blocking
         # vis.run()
 
         cv2.imshow("img", img)

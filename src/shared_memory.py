@@ -155,9 +155,9 @@ def main():
             cx, cy = map(int, (cx, cy))
             z = (z - min) / max * 255
             cv2.circle(
-                 points_arr, center=(cx, cy), radius=2, 
-                 color=(z,z,z), thickness=-1, lineType=cv2.LINE_AA
-                 )
+                points_arr, center=(cx, cy), radius=2, 
+                color=(z,z,z), thickness=-1, lineType=cv2.LINE_AA
+                )
 
         img = cv2.addWeighted(img, 1, points_arr, 1, 1)
 
