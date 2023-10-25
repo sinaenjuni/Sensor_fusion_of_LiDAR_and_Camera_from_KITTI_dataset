@@ -3,10 +3,11 @@ import os
 import numpy as np
 
 from project_lidar_to_camera import *
-import open3d as o3d
+from o3d import O3D
+
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import Pool
-
+import time
 # import cProfile
 # import pstats
 # with cProfile.Profile() as pr:
@@ -21,7 +22,8 @@ if __name__ == "__main__":
     image_02_files = load_files("data/kitti_sequence05/image_02/data/*")
     image_03_files = load_files("data/kitti_sequence05/image_03/data/*")
     lidar_files = load_files("data/kitti_sequence05/velodyne_points/data/*")
-    parameters = o3d.io.read_pinhole_camera_parameters("./parameters.json")
+    # parameters = O3D.load_calib("./parameters.json")
+    # parameters = o3d.io.read_pinhole_camera_parameters("./parameters.json")
     Tr = load_lidar_to_refcam_calib("data/kitti_sequence05/calib/calib_velo_to_cam.txt")
     Tr_inv = inverse_rigid_trans(Tr)
     P, R = load_refcam_to_cam_calib("data/kitti_sequence05/calib/calib_cam_to_cam.txt", "02")
@@ -29,16 +31,14 @@ if __name__ == "__main__":
     print(R)
 
     # open3d
-    vis = o3d.visualization.Visualizer()
-    vis.create_window(width=3000, height=1500, visible=True)
-    opt = vis.get_render_option()
-    opt.background_color = np.asarray([0, 0, 0])
-    opt.point_size = 3
-    ctr = vis.get_view_control()
-
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(load_lidar_file(lidar_files[0])[:, :3])
-    vis.add_geometry(pcd)
+    vis_3d_truth = O3D(width=2048, height=1024, 
+                init_points=load_lidar_file(lidar_files[0])[:, :3], 
+                calib="./o3d_calibration.json"
+                )
+    vis_3d_reprojection = O3D(width=3000, height=1500, 
+                init_points=load_lidar_file(lidar_files[0])[:, :3], 
+                calib="./o3d_calibration.json"
+                )
 
     for ind in range(len(image_00_files)):
         lidar_file = load_lidar_file(lidar_files[ind])
@@ -70,29 +70,21 @@ if __name__ == "__main__":
             
         img = cv2.addWeighted(img, 1, points_arr, 1, 1)
 
-        # pts_3d_uv = project_image_to_rect(pts_2d_hom, P)
-        # proj_to_lidar = (Tr_inv @ np.linalg.inv(R) @ pts_3d_uv.T).T
+        pts_3d_uv = cart2hom(project_image_to_rect(pts_2d_hom, P))
+        proj_to_lidar = (Tr_inv @ np.linalg.inv(R) @ pts_3d_uv.T).T
 
-        pcd.points = o3d.utility.Vector3dVector(lidar_file[:, :3])
-        vis.update_geometry(pcd)
-        ctr.convert_from_pinhole_camera_parameters(parameters)
+        vis_3d_truth.updata_pcd(lidar_file[:, :3])
+        vis_3d_reprojection.updata_pcd(proj_to_lidar[:, :3])
 
-        keep_running = vis.poll_events()
-        vis.update_renderer()
-
-        # save files        
-        # o3d_save_path = os.path.join("./outputs/o3d", f"{ind}.png")
-        # if not os.path.exists(os.path.dirname(o3d_save_path)):
-        #     os.makedirs(os.path.dirname(o3d_save_path))
-        # vis.capture_screen_image(o3d_save_path)
 
         # blocking
         # vis.run()
 
-        cv2.imshow("img", img)
-        if cv2.waitKey(1) == ord('q'):
-            break
+        # cv2.imshow("img", img)
+        # if cv2.waitKey() == ord('q'):
+        #     break
+
+        time.sleep(.1)
         
 
     cv2.destroyAllWindows()
-    o3d.destroy_window()
