@@ -75,7 +75,6 @@ if __name__ == "__main__":
         proj_to_lidar = (Tr_inv @ np.linalg.inv(R) @ pts_3d_uv.T).T
 
 
-
         # blocking
         # vis.run()
 

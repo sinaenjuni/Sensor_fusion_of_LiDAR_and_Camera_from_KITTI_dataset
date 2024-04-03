@@ -1,4 +1,6 @@
-# lidar to camera calibration with KITTI dataset
+# Sensor fusion of LiDAR and Camera from KITTI dataset
+
+![](docs/record.gif)
 
 ## Index
 1. [Dataset](#dataset)
@@ -80,6 +82,3 @@ $$
 Y = P_\text{rect xx} * R_\text{rect 00} * (R|T)_\text{velo to cam} * X
 $$
 
-
-## Demo
-![](docs/record.gif)
