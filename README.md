@@ -6,6 +6,16 @@
 1. [Dataset](#dataset)
 2. [Usage](#usage)
 
+## Requirements
+For building and running the application you need:
+
+### Installation
+```
+python 3.10
+and
+install using requirements.txt
+```
+
 ## Dataset
 1. Visit [KITTI dataset website](https://www.cvlibs.net/datasets/kitti/raw_data.php) and login
 2. Download object tracking or any sequence dataset (Recommend Raw data tab)
